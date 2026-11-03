@@ -35,8 +35,8 @@ const Select: React.FC<SelectProps> = ({ label, value, onChange, options, disabl
           options={options}
           menuPortalTarget={document.body}
           styles={{
-            menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-            option: (base, { isFocused, isSelected }) => ({
+            menuPortal: (base: any) => ({ ...base, zIndex: 9999 } as any),
+            option: (base: any, { isFocused, isSelected }: any) => ({
               ...base,
               backgroundColor: isFocused
                 ? "rgb(107 114 128)"

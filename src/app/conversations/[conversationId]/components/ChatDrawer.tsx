@@ -226,11 +226,13 @@ const ChatDrawer: React.FC<ProfileDrawerProps> = ({
                                   <dd className="space-y-1.5">
                                     {data.users.map((user) => (
                                       <div key={user.id} className="flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded-full overflow-hidden">
-                                          <img
+                                        <div className="relative w-6 h-6 rounded-full overflow-hidden">
+                                          <Image
                                             src={user.image || "/images/avatar-placeholder.png"}
                                             alt={user.name || "User"}
-                                            className="w-full h-full object-cover"
+                                            fill
+                                            className="object-cover"
+                                            unoptimized
                                           />
                                         </div>
                                         <span className="font-medium text-slate-800 dark:text-slate-200">

@@ -31,11 +31,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen: controll
 
   const show = controlledIsOpen !== undefined ? controlledIsOpen : isOpen;
 
-  const closePalette = () => {
+  const closePalette = React.useCallback(() => {
     if (onClose) onClose();
     setIsOpen(false);
     setSearch("");
-  };
+  }, [onClose]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -50,7 +50,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen: controll
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [closePalette]);
 
   if (!show) return null;
 

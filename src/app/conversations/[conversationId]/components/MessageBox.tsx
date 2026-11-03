@@ -442,10 +442,12 @@ const MessageBox: React.FC<MessageBoxProps> = ({ data, isLast }) => {
                   title={`Seen by ${user.name}`}
                   className="relative w-4 h-4 rounded-full overflow-hidden ring-1 ring-white dark:ring-slate-900"
                 >
-                  <img
+                  <Image
                     src={user.image || "/images/avatar-placeholder.png"}
                     alt={user.name || "User"}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
+                    unoptimized
                   />
                 </div>
               ))}

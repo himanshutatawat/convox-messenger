@@ -1,6 +1,15 @@
 import prisma from "../libs/prismadb";
 import getCurrentUser from "./getCurrentUser";
 
+const userSelect = {
+  id: true,
+  name: true,
+  email: true,
+  image: true,
+  createdAt: true,
+  updatedAt: true,
+};
+
 const getConversations = async () => {
   const currentUser = await getCurrentUser();
 
@@ -19,17 +28,27 @@ const getConversations = async () => {
         },
       },
       include: {
-        users: true,
+        users: {
+          select: userSelect,
+        },
         messages: {
+          take: 1,
+          orderBy: {
+            createdAt: "desc",
+          },
           include: {
-            sender: true,
-            seen: true,
+            sender: {
+              select: userSelect,
+            },
+            seen: {
+              select: userSelect,
+            },
           },
         },
       },
     });
 
-    return conversations;
+    return conversations as any;
   } catch (error: any) {
     return [];
   }

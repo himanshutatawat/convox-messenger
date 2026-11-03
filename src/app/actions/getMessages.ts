@@ -1,26 +1,56 @@
 import prisma from "../libs/prismadb";
 
-const getMessages = async (conversationId: string) => {
+const userSelect = {
+  id: true,
+  name: true,
+  email: true,
+  image: true,
+  createdAt: true,
+  updatedAt: true,
+};
+
+const getMessages = async (
+  conversationId: string,
+  cursor?: string,
+  limit: number = 30
+) => {
   try {
-    const messages = await prisma.message.findMany({
+    const queryOptions: any = {
       where: {
         conversationId: conversationId,
       },
       include: {
-        sender: true,
-        seen: true,
+        sender: {
+          select: userSelect,
+        },
+        seen: {
+          select: userSelect,
+        },
         replyTo: {
           include: {
-            sender: true,
+            sender: {
+              select: userSelect,
+            },
           },
         },
       },
       orderBy: {
-        createdAt: "asc",
+        createdAt: "desc",
       },
-    });
+      take: limit,
+    };
 
-    return messages;
+    if (cursor) {
+      queryOptions.cursor = {
+        id: cursor,
+      };
+      queryOptions.skip = 1;
+    }
+
+    const messages = await prisma.message.findMany(queryOptions);
+
+    // Return in chronological order (oldest to newest)
+    return messages.reverse() as any;
   } catch (error: any) {
     return [];
   }

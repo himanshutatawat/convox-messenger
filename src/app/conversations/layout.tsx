@@ -4,8 +4,10 @@ import Sidebar from "../components/sidebar/Sidebar";
 import ConversationList from "./components/ConversationList";
 
 export default async function ConversationsLayout({ children }: { children: React.ReactNode }) {
-  const conversations = await getConversations();
-  const users = await getUsers();
+  const [conversations, users] = await Promise.all([
+    getConversations(),
+    getUsers(),
+  ]);
 
   return (
     // @ts-expect-error Server Component

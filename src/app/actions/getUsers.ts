@@ -1,5 +1,4 @@
 import prisma from "@/app/libs/prismadb";
-
 import getSession from "./getSession";
 
 const getUsers = async () => {
@@ -19,9 +18,17 @@ const getUsers = async () => {
           email: session.user.email,
         },
       },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
-    return users;
+    return users as any;
   } catch (error: any) {
     return [];
   }

@@ -64,6 +64,8 @@ model Conversation {
 
   userIds String[] @db.ObjectId
   users User[] @relation(fields: [userIds], references: [id])
+
+  @@index([lastMessageAt])
 }
 
 model Message {
@@ -91,4 +93,6 @@ model Message {
   replyToId String? @db.ObjectId
   replyTo Message? @relation("ThreadReplies", fields: [replyToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   replies Message[] @relation("ThreadReplies")
+
+  @@index([conversationId, createdAt])
 }

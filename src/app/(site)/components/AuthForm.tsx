@@ -4,6 +4,7 @@ import axios from "axios";
 import { useCallback, useEffect, useState } from "react";
 import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
+import { BsGithub, BsGoogle } from "react-icons/bs";
 import { HiSparkles } from "react-icons/hi2";
 
 import { signIn, useSession } from "next-auth/react";
@@ -12,6 +13,7 @@ import { useRouter } from "next/navigation";
 import Button from "../../components/Button";
 import Input from "../../components/inputs/Input";
 import LoadingModal from "../../components/modals/LoadingModal";
+import AuthSocialButton from "./AuthSocialButton";
 
 type Variant = "LOGIN" | "REGISTER";
 
@@ -92,6 +94,23 @@ const AuthForm = () => {
     }
   };
 
+  const socialAction = (action: string) => {
+    setIsLoading(true);
+
+    signIn(action, { redirect: false })
+      .then((callback) => {
+        if (callback?.error) {
+          toast.error("Invalid credentials!");
+          return;
+        }
+
+        if (callback?.ok) {
+          toast.success("Logged in with " + action);
+        }
+      })
+      .finally(() => setIsLoading(false));
+  };
+
   return (
     <>
       {session?.status === "loading" && <LoadingModal />}
@@ -101,22 +120,20 @@ const AuthForm = () => {
           <button
             type="button"
             onClick={() => setVariant("LOGIN")}
-            className={`flex-1 py-2 text-center rounded-lg transition-all duration-200 ${
-              variant === "LOGIN"
+            className={`flex-1 py-2 text-center rounded-lg transition-all duration-200 ${variant === "LOGIN"
                 ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm font-semibold"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}
+              }`}
           >
             Sign In
           </button>
           <button
             type="button"
             onClick={() => setVariant("REGISTER")}
-            className={`flex-1 py-2 text-center rounded-lg transition-all duration-200 ${
-              variant === "REGISTER"
+            className={`flex-1 py-2 text-center rounded-lg transition-all duration-200 ${variant === "REGISTER"
                 ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm font-semibold"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}
+              }`}
           >
             Create Account
           </button>
@@ -153,7 +170,7 @@ const AuthForm = () => {
               type="password"
             />
 
-            <div className="pt-1">
+            <div>
               <Button disabled={isLoading} fullWidth type="submit">
                 {variant === "LOGIN" ? "Sign In to ConvoX" : "Create My Account"}
               </Button>
@@ -161,8 +178,8 @@ const AuthForm = () => {
           </form>
 
           {/* Quick Demo Fill Pill Buttons */}
-          <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800/60">
-            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-2.5">
+          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/60">
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-2">
               <span className="flex items-center gap-1 font-medium">
                 <HiSparkles className="text-amber-500" /> Quick fill test profile:
               </span>
@@ -171,21 +188,38 @@ const AuthForm = () => {
               <button
                 type="button"
                 onClick={() => quickFillDemo("Alex Rivera", "alex@convox.app")}
-                className="flex-1 py-1.5 px-2 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium transition"
+                className="flex-1 py-1 px-2 text-xs rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition"
               >
                 Alex (Demo 1)
               </button>
               <button
                 type="button"
                 onClick={() => quickFillDemo("Sophia Chen", "sophia@convox.app")}
-                className="flex-1 py-1.5 px-2 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium transition"
+                className="flex-1 py-1 px-2 text-xs rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition"
               >
                 Sophia (Demo 2)
               </button>
             </div>
           </div>
 
-          {/* Mode Switch Footer */}
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200 dark:border-slate-800" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase tracking-wider">
+                <span className="bg-white dark:bg-[#1a1b1e] px-2 text-slate-400 font-medium">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-5 flex gap-3">
+              <AuthSocialButton icon={BsGithub} onClick={() => socialAction("github")} />
+              <AuthSocialButton icon={BsGoogle} onClick={() => socialAction("google")} />
+            </div>
+          </div>
+
           <div className="mt-6 flex justify-center gap-2 text-sm text-slate-500 dark:text-slate-400">
             <div>{variant === "LOGIN" ? "New to ConvoX?" : "Already have an account?"}</div>
             <button
