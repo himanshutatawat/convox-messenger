@@ -32,8 +32,11 @@ const POPULAR_EMOJIS = [
 const Form = () => {
   const session = useSession();
   const { conversationId } = useConversation();
-  const { replyMessage, setReplyMessage } = useReplyMessage();
-  const { addPendingMessage, removePendingMessage, updatePendingStatus } = useOptimisticMessages();
+  const replyMessage = useReplyMessage((state) => state.replyMessage);
+  const setReplyMessage = useReplyMessage((state) => state.setReplyMessage);
+  const addPendingMessage = useOptimisticMessages((state) => state.addPendingMessage);
+  const removePendingMessage = useOptimisticMessages((state) => state.removePendingMessage);
+  const updatePendingStatus = useOptimisticMessages((state) => state.updatePendingStatus);
 
   const [showEmojis, setShowEmojis] = useState(false);
   const [showGifs, setShowGifs] = useState(false);

@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import useConversation from "@/app/hooks/useConversation";
 import { find } from "lodash";
 import { HiBookmark } from "react-icons/hi2";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 import { pusherClient, pusherEvents } from "../../../libs/pusher";
 import { sounds } from "../../../libs/soundEffects";
@@ -32,8 +33,9 @@ const Body: React.FC<BodyProps> = ({ initialMessages = [] }) => {
 
   const session = useSession();
   const { conversationId } = useConversation();
-  const { searchQuery } = useChatSearch();
-  const { pendingMessages, removePendingMessage } = useOptimisticMessages();
+  const searchQuery = useChatSearch((state) => state.searchQuery);
+  const pendingMessages = useOptimisticMessages((state) => state.pendingMessages);
+  const removePendingMessage = useOptimisticMessages((state) => state.removePendingMessage);
 
   // Stable session references to avoid tearing down Pusher listeners
   const currentEmailRef = useRef(session.data?.user?.email);
@@ -241,6 +243,16 @@ const Body: React.FC<BodyProps> = ({ initialMessages = [] }) => {
     return allMessages.filter((m) => m.body && m.body.toLowerCase().includes(query));
   }, [allMessages, searchQuery]);
 
+  // Virtualizer for smooth scrolling and low DOM overhead
+  const rowVirtualizer = useVirtualizer({
+    count: displayedMessages.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => 72,
+    overscan: 6,
+  });
+
+  const virtualItems = rowVirtualizer.getVirtualItems();
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative">
       {/* Pinned Messages Banner */}
@@ -278,13 +290,36 @@ const Body: React.FC<BodyProps> = ({ initialMessages = [] }) => {
           </div>
         )}
 
-        {displayedMessages.map((message, i) => (
-          <MessageBox
-            isLast={i === displayedMessages.length - 1}
-            key={message.tempId || message.id}
-            data={message}
-          />
-        ))}
+        <div
+          style={{
+            height: `${rowVirtualizer.getTotalSize()}px`,
+            width: "100%",
+            position: "relative",
+          }}
+        >
+          {virtualItems.map((virtualItem) => {
+            const message = displayedMessages[virtualItem.index];
+            return (
+              <div
+                key={message.tempId || message.id}
+                data-index={virtualItem.index}
+                ref={rowVirtualizer.measureElement}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  transform: `translateY(${virtualItem.start}px)`,
+                }}
+              >
+                <MessageBox
+                  isLast={virtualItem.index === displayedMessages.length - 1}
+                  data={message}
+                />
+              </div>
+            );
+          })}
+        </div>
 
         {/* Live Typing Indicator */}
         {typingUser && (

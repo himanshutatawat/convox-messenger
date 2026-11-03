@@ -1,7 +1,7 @@
 "use client";
 
 import axios from "axios";
-import { useCallback, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { HiChatBubbleLeftEllipsis } from "react-icons/hi2";
 
 import { User } from "@prisma/client";
@@ -23,11 +23,11 @@ const UserBox: React.FC<UserBoxProps> = ({ data }) => {
 
     axios
       .post("/api/conversations", { userId: data.id })
-      .then((data) => {
-        router.push(`/conversations/${data.data.id}`);
+      .then((res) => {
+        router.push(`/conversations/${res.data.id}`);
       })
       .finally(() => setIsLoading(false));
-  }, [data, router]);
+  }, [data.id, router]);
 
   return (
     <>
@@ -70,4 +70,4 @@ const UserBox: React.FC<UserBoxProps> = ({ data }) => {
   );
 };
 
-export default UserBox;
+export default memo(UserBox);

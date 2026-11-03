@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { useState } from "react";
+import { useState, useCallback, useMemo, memo } from "react";
 import { format } from "date-fns";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -37,7 +37,7 @@ const QUICK_REACTIONS = ["👍", "❤️", "🔥", "😂", "🎉", "😮"];
 
 const MessageBox: React.FC<MessageBoxProps> = ({ data, isLast }) => {
   const session = useSession();
-  const { setReplyMessage } = useReplyMessage();
+  const setReplyMessage = useReplyMessage((state) => state.setReplyMessage);
 
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -54,27 +54,32 @@ const MessageBox: React.FC<MessageBoxProps> = ({ data, isLast }) => {
   const starredByIds = (data as any).starredByIds || [];
   const isStarred = currentUserId && starredByIds.includes(currentUserId);
 
-  const seenUsers = (data.seen || []).filter((user) => user.email !== data?.sender?.email);
+  const seenUsers = useMemo(() => {
+    return (data.seen || []).filter((user) => user.email !== data?.sender?.email);
+  }, [data.seen, data.sender?.email]);
 
-  const handleCopy = () => {
+  const handleCopy = useCallback(() => {
     if (!data.body) return;
     navigator.clipboard.writeText(data.body);
     setCopied(true);
     toast.success("Message copied to clipboard!");
     setTimeout(() => setCopied(false), 2000);
-  };
+  }, [data.body]);
 
-  const handleReaction = async (emoji: string) => {
-    sounds.playPop();
-    setShowReactionPicker(false);
-    try {
-      await axios.post(`/api/messages/${data.id}/reactions`, { emoji });
-    } catch {
-      toast.error("Could not add reaction");
-    }
-  };
+  const handleReaction = useCallback(
+    async (emoji: string) => {
+      sounds.playPop();
+      setShowReactionPicker(false);
+      try {
+        await axios.post(`/api/messages/${data.id}/reactions`, { emoji });
+      } catch {
+        toast.error("Could not add reaction");
+      }
+    },
+    [data.id]
+  );
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = useCallback(async () => {
     if (!editText.trim()) return;
     try {
       await axios.patch(`/api/messages/${data.id}`, { message: editText });
@@ -83,9 +88,9 @@ const MessageBox: React.FC<MessageBoxProps> = ({ data, isLast }) => {
     } catch {
       toast.error("Failed to edit message");
     }
-  };
+  }, [data.id, editText]);
 
-  const handleUnsend = async () => {
+  const handleUnsend = useCallback(async () => {
     if (!confirm("Are you sure you want to unsend this message?")) return;
     try {
       await axios.delete(`/api/messages/${data.id}`);
@@ -93,29 +98,31 @@ const MessageBox: React.FC<MessageBoxProps> = ({ data, isLast }) => {
     } catch {
       toast.error("Failed to unsend message");
     }
-  };
+  }, [data.id]);
 
-  const handleTogglePin = async () => {
+  const handleTogglePin = useCallback(async () => {
     try {
       await axios.post(`/api/messages/${data.id}/pin`);
       toast.success(isPinned ? "Message unpinned" : "Message pinned");
     } catch {
       toast.error("Failed to pin message");
     }
-  };
+  }, [data.id, isPinned]);
 
-  const handleToggleStar = async () => {
+  const handleToggleStar = useCallback(async () => {
     try {
       await axios.post(`/api/messages/${data.id}/star`);
       toast.success(isStarred ? "Removed from starred" : "Message starred");
     } catch {
       toast.error("Failed to star message");
     }
-  };
+  }, [data.id, isStarred]);
 
-  const reactionsList: MessageReaction[] = Array.isArray(data.reactions)
-    ? (data.reactions as unknown as MessageReaction[])
-    : [];
+  const reactionsList: MessageReaction[] = useMemo(() => {
+    return Array.isArray(data.reactions)
+      ? (data.reactions as unknown as MessageReaction[])
+      : [];
+  }, [data.reactions]);
 
   const container = clsx("flex gap-3 px-4 py-2 group select-text", isOwn && "justify-end");
   const avatar = clsx(isOwn && "order-2");
@@ -133,13 +140,8 @@ const MessageBox: React.FC<MessageBoxProps> = ({ data, isLast }) => {
     data.status === "error" && "border-2 border-rose-400"
   );
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      className={container}
-    >
+  const content = (
+    <>
       {!isOwn && (
         <div className={avatar}>
           <Avatar user={data.sender} />
@@ -471,8 +473,23 @@ const MessageBox: React.FC<MessageBoxProps> = ({ data, isLast }) => {
           </div>
         )}
       </div>
-    </motion.div>
+    </>
   );
+
+  if (isLast) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, transform: "translateY(8px)" }}
+        animate={{ opacity: 1, transform: "translateY(0px)" }}
+        transition={{ duration: 0.15 }}
+        className={container}
+      >
+        {content}
+      </motion.div>
+    );
+  }
+
+  return <div className={container}>{content}</div>;
 };
 
-export default MessageBox;
+export default memo(MessageBox);

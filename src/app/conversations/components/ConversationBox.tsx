@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 
 import { format } from "date-fns";
 import { useSession } from "next-auth/react";
@@ -24,28 +24,22 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({ data, selected }) => 
 
   const handleClick = useCallback(() => {
     router.push(`/conversations/${data.id}`);
-  }, [data, router]);
+  }, [data.id, router]);
 
   const lastMessage = useMemo(() => {
     const messages = data.messages || [];
-
     return messages[messages.length - 1];
   }, [data.messages]);
 
   const userEmail = useMemo(() => session.data?.user?.email, [session.data?.user?.email]);
 
   const hasSeen = useMemo(() => {
-    if (!lastMessage) {
+    if (!lastMessage || !userEmail) {
       return false;
     }
 
     const seenArray = lastMessage.seen || [];
-
-    if (!userEmail) {
-      return false;
-    }
-
-    return seenArray.filter((user) => user.email === userEmail).length !== 0;
+    return seenArray.some((user) => user.email === userEmail);
   }, [userEmail, lastMessage]);
 
   const lastMessageText = useMemo(() => {
@@ -124,4 +118,4 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({ data, selected }) => 
   );
 };
 
-export default ConversationBox;
+export default memo(ConversationBox);

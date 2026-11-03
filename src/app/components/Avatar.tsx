@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { User } from "@prisma/client";
 import Image from "next/image";
 
@@ -10,8 +11,9 @@ interface AvatarProps {
 }
 
 const Avatar: React.FC<AvatarProps> = ({ user }) => {
-  const { members } = useActiveList();
-  const isActive = members.indexOf(user?.email!) !== -1;
+  const isActive = useActiveList((state) =>
+    user?.email ? state.members.includes(user.email) : false
+  );
 
   return (
     <div className="relative h-9 w-9 md:h-11 md:w-11 flex-shrink-0">
@@ -48,12 +50,11 @@ const Avatar: React.FC<AvatarProps> = ({ user }) => {
             ring-2 
             ring-white 
             top-0 
-            right-0
+            right-0 
             h-2.5 
             w-2.5 
-            md:h-3.5 
-            md:w-3.5
-            shadow-sm
+            md:h-3 
+            md:w-3
             dark:ring-slate-900
           "
         />
@@ -62,4 +63,4 @@ const Avatar: React.FC<AvatarProps> = ({ user }) => {
   );
 };
 
-export default Avatar;
+export default memo(Avatar);

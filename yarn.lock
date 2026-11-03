@@ -609,6 +609,18 @@
   dependencies:
     mini-svg-data-uri "^1.2.3"
 
+"@tanstack/react-virtual@^3.14.25":
+  version "3.14.25"
+  resolved "https://registry.yarnpkg.com/@tanstack/react-virtual/-/react-virtual-3.14.25.tgz#69ea3617c2878d403827e4a220a3abc9b380db17"
+  integrity sha512-LYNLaogi8NZUqjPgJ0byKQrXprkDJsZLd94u0i1UpYtXz2fgvbP4KrHygM4MSgSAvEaqykQofYdJ1Vuf7XIz/Q==
+  dependencies:
+    "@tanstack/virtual-core" "3.19.10"
+
+"@tanstack/virtual-core@3.19.10":
+  version "3.19.10"
+  resolved "https://registry.yarnpkg.com/@tanstack/virtual-core/-/virtual-core-3.19.10.tgz#2bf07e43d0d57f73aef1f9ee05f568cfde402879"
+  integrity sha512-/ltpH0qUCs5XQYE7fIhgA+aqgC5NzSfLTDQkC+N1wOOdvIYx1FH/kz2LGfSeanNbekqy3WBu6mNIbqXhxE/pew==
+
 "@trivago/prettier-plugin-sort-imports@^4.1.1":
   version "4.1.1"
   resolved "https://registry.npmjs.org/@trivago/prettier-plugin-sort-imports/-/prettier-plugin-sort-imports-4.1.1.tgz"

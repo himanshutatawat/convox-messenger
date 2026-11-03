@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, memo } from "react";
 import { HiChevronLeft } from "react-icons/hi";
 import { HiEllipsisHorizontal, HiMagnifyingGlass, HiXMark } from "react-icons/hi2";
 import Link from "next/link";
@@ -23,10 +23,14 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ conversation, messages = [] }) => {
   const otherUser = useOtherUser(conversation);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { searchQuery, setSearchQuery, isSearching, setIsSearching } = useChatSearch();
+  const searchQuery = useChatSearch((state) => state.searchQuery);
+  const setSearchQuery = useChatSearch((state) => state.setSearchQuery);
+  const isSearching = useChatSearch((state) => state.isSearching);
+  const setIsSearching = useChatSearch((state) => state.setIsSearching);
 
-  const { members } = useActiveList();
-  const isActive = members.indexOf(otherUser?.email!) !== -1;
+  const isActive = useActiveList((state) =>
+    otherUser?.email ? state.members.includes(otherUser.email) : false
+  );
   const statusText = useMemo(() => {
     if (conversation.isGroup) {
       return `${conversation.users.length} members`;
@@ -157,4 +161,4 @@ const Header: React.FC<HeaderProps> = ({ conversation, messages = [] }) => {
   );
 };
 
-export default Header;
+export default memo(Header);
