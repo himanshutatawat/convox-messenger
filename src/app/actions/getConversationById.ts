@@ -14,11 +14,22 @@ const getConversationById = async (conversationId: string) => {
         id: conversationId,
       },
       include: {
-        users: true,
+        users: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            createdAt: true,
+            updatedAt: true,
+            conversationIds: true,
+            seenMessageIds: true,
+          },
+        },
       },
     });
 
-    return conversation;
+    return conversation as any;
   } catch (error: any) {
     console.log(error, "SERVER_ERROR");
     return null;

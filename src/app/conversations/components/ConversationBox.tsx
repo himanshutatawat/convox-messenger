@@ -1,11 +1,11 @@
 "use client";
 
 import clsx from "clsx";
-import { memo, useCallback, useMemo } from "react";
+import { memo, useMemo } from "react";
+import Link from "next/link";
 
 import { format } from "date-fns";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 
 import Avatar from "../../components/Avatar";
 import AvatarGroup from "../../components/AvatarGroup";
@@ -20,11 +20,6 @@ interface ConversationBoxProps {
 const ConversationBox: React.FC<ConversationBoxProps> = ({ data, selected }) => {
   const otherUser = useOtherUser(data);
   const session = useSession();
-  const router = useRouter();
-
-  const handleClick = useCallback(() => {
-    router.push(`/conversations/${data.id}`);
-  }, [data.id, router]);
 
   const lastMessage = useMemo(() => {
     const messages = data.messages || [];
@@ -55,8 +50,9 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({ data, selected }) => 
   }, [lastMessage]);
 
   return (
-    <div
-      onClick={handleClick}
+    <Link
+      href={`/conversations/${data.id}`}
+      prefetch={true}
       className={clsx(
         `
         w-full 
@@ -114,7 +110,7 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({ data, selected }) => 
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 

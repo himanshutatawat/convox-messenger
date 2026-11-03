@@ -290,36 +290,46 @@ const Body: React.FC<BodyProps> = ({ initialMessages = [] }) => {
           </div>
         )}
 
-        <div
-          style={{
-            height: `${rowVirtualizer.getTotalSize()}px`,
-            width: "100%",
-            position: "relative",
-          }}
-        >
-          {virtualItems.map((virtualItem) => {
-            const message = displayedMessages[virtualItem.index];
-            return (
-              <div
-                key={message.tempId || message.id}
-                data-index={virtualItem.index}
-                ref={rowVirtualizer.measureElement}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  transform: `translateY(${virtualItem.start}px)`,
-                }}
-              >
-                <MessageBox
-                  isLast={virtualItem.index === displayedMessages.length - 1}
-                  data={message}
-                />
-              </div>
-            );
-          })}
-        </div>
+        {displayedMessages.length > 40 ? (
+          <div
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {virtualItems.map((virtualItem) => {
+              const message = displayedMessages[virtualItem.index];
+              return (
+                <div
+                  key={message.tempId || message.id}
+                  data-index={virtualItem.index}
+                  ref={rowVirtualizer.measureElement}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualItem.start}px)`,
+                  }}
+                >
+                  <MessageBox
+                    isLast={virtualItem.index === displayedMessages.length - 1}
+                    data={message}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          displayedMessages.map((message, i) => (
+            <MessageBox
+              isLast={i === displayedMessages.length - 1}
+              key={message.tempId || message.id}
+              data={message}
+            />
+          ))
+        )}
 
         {/* Live Typing Indicator */}
         {typingUser && (
