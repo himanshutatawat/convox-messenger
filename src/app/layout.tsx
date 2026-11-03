@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import ActiveStatus from "./components/ActiveStatus";
 import { Providers } from "./components/theme/Providers";
 import AuthContext from "./context/AuthContext";
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </>
           </Providers>
         </AuthContext>
+        <Analytics />
       </body>
     </html>
   );
