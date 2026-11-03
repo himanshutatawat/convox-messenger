@@ -1,8 +1,9 @@
 "use client";
 
 import axios from "axios";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
+import { useSession } from "next-auth/react";
 import {
   HiPaperAirplane,
   HiPhoto,
@@ -16,7 +17,9 @@ import toast from "react-hot-toast";
 
 import useConversation from "../../../hooks/useConversation";
 import useReplyMessage from "../../../hooks/useReplyMessage";
+import useOptimisticMessages from "../../../hooks/useOptimisticMessages";
 import { sounds } from "../../../libs/soundEffects";
+import { FullMessageType } from "../../../types";
 import GifPicker from "../../../components/GifPicker";
 import MessageInput from "./MessageInput";
 
@@ -27,8 +30,10 @@ const POPULAR_EMOJIS = [
 ];
 
 const Form = () => {
+  const session = useSession();
   const { conversationId } = useConversation();
   const { replyMessage, setReplyMessage } = useReplyMessage();
+  const { addPendingMessage, removePendingMessage, updatePendingStatus } = useOptimisticMessages();
 
   const [showEmojis, setShowEmojis] = useState(false);
   const [showGifs, setShowGifs] = useState(false);
@@ -54,6 +59,48 @@ const Form = () => {
   });
 
   const currentMessage = watch("message") || "";
+
+  const createOptimisticMessage = useCallback(
+    (fields: Partial<FullMessageType>): FullMessageType => {
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      const currentUserId = (session.data?.user as any)?.id || "";
+      return {
+        id: tempId,
+        tempId,
+        body: fields.body || null,
+        image: fields.image || null,
+        audio: fields.audio || null,
+        createdAt: new Date(),
+        seen: [],
+        seenIds: [],
+        conversationId,
+        senderId: currentUserId,
+        sender: {
+          id: currentUserId,
+          name: session.data?.user?.name || "You",
+          email: session.data?.user?.email || "",
+          image: session.data?.user?.image || null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          conversationIds: [],
+          seenMessageIds: [],
+          hashedPassword: null,
+          emailVerified: null,
+        },
+        replyTo: replyMessage || null,
+        replyToId: replyMessage?.id || null,
+        reactions: [],
+        ogData: null,
+        isPinned: false,
+        starredByIds: [],
+        isDeleted: false,
+        editedAt: null,
+        status: "sending",
+        ...fields,
+      } as FullMessageType;
+    },
+    [conversationId, replyMessage, session.data?.user]
+  );
 
   // Handle typing indicator trigger
   useEffect(() => {
@@ -96,11 +143,23 @@ const Form = () => {
 
     sounds.playSent();
 
-    axios.post("/api/messages", {
-      message: messageText,
-      replyToId: parentReplyId,
-      conversationId,
-    });
+    const optimisticMsg = createOptimisticMessage({ body: messageText });
+    addPendingMessage(optimisticMsg);
+
+    axios
+      .post("/api/messages", {
+        message: messageText,
+        replyToId: parentReplyId,
+        conversationId,
+        tempId: optimisticMsg.tempId,
+      })
+      .then(() => {
+        removePendingMessage(optimisticMsg.tempId!);
+      })
+      .catch(() => {
+        updatePendingStatus(optimisticMsg.tempId!, "error");
+        toast.error("Failed to send message.");
+      });
   };
 
   const handleUpload = (result: any) => {
@@ -108,11 +167,24 @@ const Form = () => {
     const parentReplyId = replyMessage?.id;
     setReplyMessage(null);
 
-    axios.post("/api/messages", {
-      image: result.info.secure_url,
-      replyToId: parentReplyId,
-      conversationId,
-    });
+    const imageUrl = result.info.secure_url;
+    const optimisticMsg = createOptimisticMessage({ image: imageUrl });
+    addPendingMessage(optimisticMsg);
+
+    axios
+      .post("/api/messages", {
+        image: imageUrl,
+        replyToId: parentReplyId,
+        conversationId,
+        tempId: optimisticMsg.tempId,
+      })
+      .then(() => {
+        removePendingMessage(optimisticMsg.tempId!);
+      })
+      .catch(() => {
+        updatePendingStatus(optimisticMsg.tempId!, "error");
+        toast.error("Failed to upload image.");
+      });
   };
 
   const handleSelectGif = (gifUrl: string) => {
@@ -120,11 +192,23 @@ const Form = () => {
     const parentReplyId = replyMessage?.id;
     setReplyMessage(null);
 
-    axios.post("/api/messages", {
-      image: gifUrl,
-      replyToId: parentReplyId,
-      conversationId,
-    });
+    const optimisticMsg = createOptimisticMessage({ image: gifUrl });
+    addPendingMessage(optimisticMsg);
+
+    axios
+      .post("/api/messages", {
+        image: gifUrl,
+        replyToId: parentReplyId,
+        conversationId,
+        tempId: optimisticMsg.tempId,
+      })
+      .then(() => {
+        removePendingMessage(optimisticMsg.tempId!);
+      })
+      .catch(() => {
+        updatePendingStatus(optimisticMsg.tempId!, "error");
+        toast.error("Failed to send GIF.");
+      });
   };
 
   const handleEmojiClick = (emoji: string) => {
@@ -221,12 +305,17 @@ const Form = () => {
 
         sounds.playSent();
 
+        const optimisticMsg = createOptimisticMessage({ audio: audioUrl });
+        addPendingMessage(optimisticMsg);
+
         await axios.post("/api/messages", {
           audio: audioUrl,
           replyToId: parentReplyId,
           conversationId,
+          tempId: optimisticMsg.tempId,
         });
 
+        removePendingMessage(optimisticMsg.tempId!);
         toast.success("Voice note sent!", { id: toastId });
       } catch (err) {
         console.error("Voice note error:", err);

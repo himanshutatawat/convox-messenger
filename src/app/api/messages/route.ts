@@ -11,14 +11,15 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     const body = await request.json();
-    const { message, image, audio, replyToId, conversationId } = body;
+    const { message, image, audio, replyToId, conversationId, tempId } = body;
 
-    if (!session?.user?.email) {
+    if (!session?.user?.email || !conversationId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
     const currentUser = await prisma.user.findUnique({
       where: { email: session.user.email },
+      select: { id: true, name: true, email: true, image: true },
     });
 
     if (!currentUser?.id) {
@@ -58,28 +59,43 @@ export async function POST(request: Request) {
       },
     });
 
+    // Update conversation metadata with minimal select (never load all messages into memory)
     const updatedConversation = await prisma.conversation.update({
       where: { id: conversationId },
       data: {
         lastMessageAt: new Date(),
         messages: { connect: { id: newMessage.id } },
       },
-      include: { users: true, messages: { include: { seen: true } } },
+      select: {
+        users: {
+          select: {
+            email: true,
+          },
+        },
+      },
     });
 
-    await pusherServer.trigger(conversationId, pusherEvents.NEW_MESSAGE, newMessage);
+    const payloadWithTempId = {
+      ...newMessage,
+      tempId,
+    };
 
-    const lastMessage = updatedConversation.messages[updatedConversation.messages.length - 1];
-    updatedConversation.users.map((user) => {
-      pusherServer.trigger(user.email!, pusherEvents.UPDATE_CONVERSATION, {
-        id: conversationId,
-        messages: [lastMessage],
-      });
+    // Broadcast new message to active conversation room
+    await pusherServer.trigger(conversationId, pusherEvents.NEW_MESSAGE, payloadWithTempId);
+
+    // Notify sidebar of all conversation participants
+    updatedConversation.users.forEach((user) => {
+      if (user.email) {
+        pusherServer.trigger(user.email, pusherEvents.UPDATE_CONVERSATION, {
+          id: conversationId,
+          messages: [newMessage],
+        });
+      }
     });
 
-    return NextResponse.json(newMessage);
+    return NextResponse.json(payloadWithTempId);
   } catch (error: any) {
-    console.log(error, "ERROR_MESSAGES");
+    console.error(error, "ERROR_MESSAGES");
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MdOutlineGroupAdd } from "react-icons/md";
 import { HiMagnifyingGlass, HiXMark } from "react-icons/hi2";
 
@@ -30,6 +30,10 @@ const ConversationList: React.FC<ConversationListProps> = ({ initialItems, users
   const session = useSession();
 
   const { conversationId, isOpen } = useConversation();
+  const conversationIdRef = useRef(conversationId);
+  useEffect(() => {
+    conversationIdRef.current = conversationId;
+  }, [conversationId]);
 
   const pusherKey = useMemo(() => {
     return session.data?.user?.email;
@@ -73,7 +77,7 @@ const ConversationList: React.FC<ConversationListProps> = ({ initialItems, users
         return [...current.filter((convo) => convo.id !== conversation.id)];
       });
 
-      if (conversationId == conversation.id) {
+      if (conversationIdRef.current === conversation.id) {
         router.push("/conversations");
       }
     };
@@ -88,7 +92,7 @@ const ConversationList: React.FC<ConversationListProps> = ({ initialItems, users
       pusherClient.unbind(pusherEvents.NEW_CONVERSATION, newHandler);
       pusherClient.unbind(pusherEvents.DELETE_CONVERSATION, removeHandler);
     };
-  }, [conversationId, pusherKey, router]);
+  }, [pusherKey, router]);
 
   // Filter conversations by search term
   const filteredItems = useMemo(() => {

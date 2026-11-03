@@ -128,7 +128,9 @@ const MessageBox: React.FC<MessageBoxProps> = ({ data, isLast }) => {
       : isOwn
       ? "bg-gradient-to-r from-indigo-500 to-sky-500 text-white rounded-2xl rounded-tr-sm shadow-sky-500/20"
       : "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-2xl rounded-tl-sm border border-slate-200/60 dark:border-slate-700/60",
-    !isDeleted && (data.image ? "p-0 rounded-2xl" : data.audio ? "p-1 rounded-2xl" : "py-2.5 px-4")
+    !isDeleted && (data.image ? "p-0 rounded-2xl" : data.audio ? "p-1 rounded-2xl" : "py-2.5 px-4"),
+    data.status === "sending" && "opacity-75",
+    data.status === "error" && "border-2 border-rose-400"
   );
 
   return (
@@ -154,6 +156,17 @@ const MessageBox: React.FC<MessageBoxProps> = ({ data, isLast }) => {
           <span className="text-[11px] text-slate-400 dark:text-slate-500">
             {format(new Date(data.createdAt), "p")}
           </span>
+          {data.status === "sending" && (
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 italic flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
+              sending...
+            </span>
+          )}
+          {data.status === "error" && (
+            <span className="text-[10px] text-rose-500 font-medium flex items-center gap-1">
+              ⚠️ Failed to send
+            </span>
+          )}
           {editedAt && !isDeleted && (
             <span className="text-[10px] text-slate-400 italic">(edited)</span>
           )}

@@ -27,3 +27,4 @@ export async function GET(request: Request, { params }: { params: IParams }) {
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
+

@@ -18,6 +18,8 @@ export type FullMessageType = Message & {
   sender: User;
   seen: User[];
   replyTo?: (Message & { sender: User }) | null;
+  tempId?: string;
+  status?: "sending" | "sent" | "error";
 };
 
 export type FullConversationType = Conversation & {

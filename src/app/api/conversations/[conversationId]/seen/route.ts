@@ -15,60 +15,82 @@ export async function POST(request: Request, { params }: { params: IParams }) {
     const session = await getServerSession(authOptions);
     const { conversationId } = params;
 
-    if (!session?.user?.email) {
+    if (!session?.user?.email || !conversationId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
     const currentUser = await prisma.user.findUnique({
       where: { email: session.user.email },
+      select: { id: true, email: true },
     });
 
     if (!currentUser?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
+    // Verify conversation existence and membership
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
-      include: {
-        messages: { include: { seen: true } },
-        users: true,
-      },
+      select: { id: true, userIds: true },
     });
 
     if (!conversation) {
       return new NextResponse("Invalid ID", { status: 400 });
     }
 
-    const lastMessage = conversation.messages[conversation.messages.length - 1];
-    if (!lastMessage) return NextResponse.json(conversation);
-
-    const updatedMessage = await prisma.message.update({
-      where: { id: lastMessage.id },
-      include: { sender: true, seen: true },
-      data: {
-        seen: { connect: { id: currentUser.id } },
+    // Fast indexed query: Fetch only the single latest message using @@index([conversationId, createdAt])
+    const lastMessage = await prisma.message.findFirst({
+      where: { conversationId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        seenIds: true,
+        senderId: true,
       },
     });
 
+    if (!lastMessage) {
+      return NextResponse.json({ id: conversationId });
+    }
+
+    // If current user has already seen this message, skip redundant DB write and Pusher broadcasts
+    if (lastMessage.seenIds.includes(currentUser.id)) {
+      return NextResponse.json({ id: lastMessage.id, seen: true });
+    }
+
+    // Update only the last message
+    const updatedMessage = await prisma.message.update({
+      where: { id: lastMessage.id },
+      data: {
+        seen: { connect: { id: currentUser.id } },
+      },
+      include: {
+        sender: true,
+        seen: true,
+        replyTo: {
+          include: {
+            sender: true,
+          },
+        },
+      },
+    });
+
+    // Notify user's sidebar
     await pusherServer.trigger(session.user.email, "conversation:update", {
       id: conversationId,
       messages: [updatedMessage],
     });
 
-    if (lastMessage.seenIds.indexOf(currentUser.id) !== -1) {
-      return NextResponse.json(conversation);
-    }
-
+    // Broadcast seen update to active conversation participants
     await pusherServer.trigger(
-      conversationId!,
+      conversationId,
       pusherEvents.UPDATE_MESSAGE,
       updatedMessage
     );
 
     return NextResponse.json(updatedMessage);
   } catch (error: any) {
-    console.log(error, "ERROR_MESSAGES_SEEN");
+    console.error(error, "ERROR_MESSAGES_SEEN");
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
-

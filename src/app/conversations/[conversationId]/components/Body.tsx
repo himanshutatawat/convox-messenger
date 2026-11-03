@@ -11,6 +11,7 @@ import { pusherClient, pusherEvents } from "../../../libs/pusher";
 import { sounds } from "../../../libs/soundEffects";
 import { FullMessageType } from "../../../types";
 import useChatSearch from "../../../hooks/useChatSearch";
+import useOptimisticMessages from "../../../hooks/useOptimisticMessages";
 import MessageBox from "./MessageBox";
 
 interface BodyProps {
@@ -27,14 +28,20 @@ const Body: React.FC<BodyProps> = ({ initialMessages = [] }) => {
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [typingUser, setTypingUser] = useState<string | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const seenTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const session = useSession();
   const { conversationId } = useConversation();
   const { searchQuery } = useChatSearch();
+  const { pendingMessages, removePendingMessage } = useOptimisticMessages();
 
+  // Stable session references to avoid tearing down Pusher listeners
+  const currentEmailRef = useRef(session.data?.user?.email);
+  const currentIdRef = useRef((session.data?.user as any)?.id);
   useEffect(() => {
-    axios.post(`/api/conversations/${conversationId}/seen`);
-  }, [conversationId]);
+    currentEmailRef.current = session.data?.user?.email;
+    currentIdRef.current = (session.data?.user as any)?.id;
+  }, [session.data?.user]);
 
   // Initial scroll to bottom
   useEffect(() => {
@@ -48,6 +55,48 @@ const Body: React.FC<BodyProps> = ({ initialMessages = [] }) => {
   const scrollToBottom = useCallback(() => {
     bottomRef?.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
+
+  // Debounced "mark as seen" only if latest message is unseen and from another user
+  const sendSeen = useCallback(
+    (targetMessage?: FullMessageType) => {
+      const email = currentEmailRef.current;
+      const id = currentIdRef.current;
+      if (!email || !conversationId) return;
+
+      const latest = targetMessage || messages[messages.length - 1];
+      if (!latest) return;
+
+      // Skip if our own message
+      if (latest.sender?.email === email || (latest.senderId && latest.senderId === id)) {
+        return;
+      }
+
+      // Skip if already seen by current user
+      const alreadySeen =
+        (latest.seenIds && latest.seenIds.includes(id)) ||
+        latest.seen?.some((u) => u.email === email || u.id === id);
+
+      if (alreadySeen) return;
+
+      axios.post(`/api/conversations/${conversationId}/seen`).catch(() => {});
+    },
+    [conversationId, messages]
+  );
+
+  const debouncedSendSeen = useCallback(
+    (targetMessage?: FullMessageType) => {
+      if (seenTimeoutRef.current) clearTimeout(seenTimeoutRef.current);
+      seenTimeoutRef.current = setTimeout(() => {
+        sendSeen(targetMessage);
+      }, 300);
+    },
+    [sendSeen]
+  );
+
+  // Check seen on initial mount or conversation switch
+  useEffect(() => {
+    debouncedSendSeen();
+  }, [conversationId, debouncedSendSeen]);
 
   // Handle infinite scroll up for older messages
   const handleScroll = async () => {
@@ -88,20 +137,38 @@ const Body: React.FC<BodyProps> = ({ initialMessages = [] }) => {
     }
   };
 
+  // Pusher real-time event subscriptions
   useEffect(() => {
     pusherClient.subscribe(conversationId);
 
     const messageHandler = (message: FullMessageType) => {
-      axios.post(`/api/conversations/${conversationId}/seen`);
+      // Reconcile optimistic message if tempId matches
+      if (message.tempId) {
+        removePendingMessage(message.tempId);
+      }
 
-      if (session.data?.user?.email !== message.sender?.email) {
+      const myEmail = currentEmailRef.current;
+      if (myEmail && message.sender?.email !== myEmail) {
         sounds.playReceived();
+        debouncedSendSeen(message);
       }
 
       setMessages((current) => {
+        // Skip duplicate real messages
         if (find(current, { id: message.id })) {
           return current;
         }
+
+        // Reconcile if message contains a tempId already in state
+        if (
+          message.tempId &&
+          current.some((m) => m.tempId === message.tempId || m.id === message.tempId)
+        ) {
+          return current.map((m) =>
+            m.tempId === message.tempId || m.id === message.tempId ? message : m
+          );
+        }
+
         return [...current, message];
       });
 
@@ -120,7 +187,7 @@ const Body: React.FC<BodyProps> = ({ initialMessages = [] }) => {
     };
 
     const typingHandler = (data: { userId: string; userName: string; isTyping: boolean }) => {
-      const currentUserId = (session.data?.user as any)?.id;
+      const currentUserId = currentIdRef.current;
       if (data.userId === currentUserId) return;
 
       if (data.isTyping) {
@@ -144,20 +211,35 @@ const Body: React.FC<BodyProps> = ({ initialMessages = [] }) => {
       pusherClient.unbind(pusherEvents.UPDATE_MESSAGE, updateMessageHandler);
       pusherClient.unbind("typing", typingHandler);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (seenTimeoutRef.current) clearTimeout(seenTimeoutRef.current);
     };
-  }, [conversationId, session.data?.user, scrollToBottom]);
+  }, [conversationId, debouncedSendSeen, removePendingMessage, scrollToBottom]);
+
+  // Merge optimistic pending messages for this conversation
+  const activePending = useMemo(() => {
+    return pendingMessages.filter((m) => m.conversationId === conversationId);
+  }, [pendingMessages, conversationId]);
+
+  const allMessages = useMemo(() => {
+    if (activePending.length === 0) return messages;
+    const existingIds = new Set(messages.map((m) => m.id));
+    const unconfirmed = activePending.filter(
+      (m) => !existingIds.has(m.id) && (!m.tempId || !existingIds.has(m.tempId))
+    );
+    return [...messages, ...unconfirmed];
+  }, [messages, activePending]);
 
   // Find pinned messages
   const pinnedMessages = useMemo(() => {
-    return messages.filter((m: any) => m.isPinned);
-  }, [messages]);
+    return allMessages.filter((m: any) => m.isPinned);
+  }, [allMessages]);
 
   // Filter messages if search query is active
   const displayedMessages = useMemo(() => {
-    if (!searchQuery.trim()) return messages;
+    if (!searchQuery.trim()) return allMessages;
     const query = searchQuery.toLowerCase();
-    return messages.filter((m) => m.body && m.body.toLowerCase().includes(query));
-  }, [messages, searchQuery]);
+    return allMessages.filter((m) => m.body && m.body.toLowerCase().includes(query));
+  }, [allMessages, searchQuery]);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative">
@@ -199,7 +281,7 @@ const Body: React.FC<BodyProps> = ({ initialMessages = [] }) => {
         {displayedMessages.map((message, i) => (
           <MessageBox
             isLast={i === displayedMessages.length - 1}
-            key={message.id}
+            key={message.tempId || message.id}
             data={message}
           />
         ))}
