@@ -2,6 +2,7 @@
 
 import { User } from "@prisma/client";
 import Image from "next/image";
+import { optimizeCloudinaryUrl } from "../libs/cloudinaryUrl";
 
 interface AvatarGroupProps {
   users?: User[];
@@ -34,7 +35,8 @@ const AvatarGroup: React.FC<AvatarGroupProps> = ({ users = [] }) => {
           <Image
             className="object-cover"
             fill
-            src={user?.image || "/images/avatar-placeholder.png"}
+            sizes="21px"
+            src={optimizeCloudinaryUrl(user?.image, 42)}
             alt="Avatar"
           />
         </div>

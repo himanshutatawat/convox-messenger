@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { IoClose, IoTrash } from "react-icons/io5";
 import { HiBell, HiBellSlash, HiPhoto, HiStar } from "react-icons/hi2";
 import { Dialog, Transition } from "@headlessui/react";
@@ -13,8 +14,10 @@ import Avatar from "../../../components/Avatar";
 import AvatarGroup from "../../../components/AvatarGroup";
 import useActiveList from "../../../hooks/useActiveList";
 import useOtherUser from "../../../hooks/useOtherUser";
-import ImageModal from "./ImageModal";
 import ConfirmModal from "./ConfirmModal";
+import { optimizeCloudinaryUrl } from "../../../libs/cloudinaryUrl";
+
+const ImageModal = dynamic(() => import("./ImageModal"), { ssr: false });
 
 interface ProfileDrawerProps {
   isOpen: boolean;
@@ -190,11 +193,11 @@ const ChatDrawer: React.FC<ProfileDrawerProps> = ({
                                     className="relative h-20 rounded-xl overflow-hidden cursor-pointer hover:opacity-90 active:scale-95 transition border border-slate-200/50 dark:border-slate-700/50"
                                   >
                                     <Image
-                                      src={imgUrl}
+                                      src={optimizeCloudinaryUrl(imgUrl, 240)}
                                       alt="Shared media"
                                       fill
+                                      sizes="(max-width: 768px) 33vw, 120px"
                                       className="object-cover"
-                                      unoptimized
                                     />
                                   </div>
                                 ))}
@@ -228,11 +231,11 @@ const ChatDrawer: React.FC<ProfileDrawerProps> = ({
                                       <div key={user.id} className="flex items-center gap-2">
                                         <div className="relative w-6 h-6 rounded-full overflow-hidden">
                                           <Image
-                                            src={user.image || "/images/avatar-placeholder.png"}
+                                            src={optimizeCloudinaryUrl(user.image, 48)}
                                             alt={user.name || "User"}
                                             fill
+                                            sizes="24px"
                                             className="object-cover"
-                                            unoptimized
                                           />
                                         </div>
                                         <span className="font-medium text-slate-800 dark:text-slate-200">

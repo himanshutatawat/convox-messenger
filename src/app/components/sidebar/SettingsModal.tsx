@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import Button from "../Button";
 import Input from "../inputs/Input";
 import Modal from "../modals/Modal";
+import { optimizeCloudinaryUrl } from "../../libs/cloudinaryUrl";
 
 interface SettingsModalProps {
   isOpen?: boolean;
@@ -105,8 +106,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, currentU
                   <Image
                     width="48"
                     height="48"
-                    className="rounded-full"
-                    src={image || currentUser?.image || "/images/avatar-placeholder.png"}
+                    className="rounded-full object-cover w-12 h-12"
+                    src={optimizeCloudinaryUrl(image || currentUser?.image, 96)}
                     alt="Avatar"
                   />
                   <CldUploadButton

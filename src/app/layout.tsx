@@ -2,7 +2,7 @@ import ActiveStatus from "./components/ActiveStatus";
 import { Providers } from "./components/theme/Providers";
 import AuthContext from "./context/AuthContext";
 import ToasterContext from "./context/ToasterContext";
-import CommandPalette from "./components/CommandPalette";
+import CommandPaletteWrapper from "./components/CommandPaletteWrapper";
 import "./globals.css";
 
 export const metadata = {
@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <>
               <ActiveStatus />
               <ToasterContext />
-              <CommandPalette />
+              <CommandPaletteWrapper />
               {children}
             </>
           </Providers>

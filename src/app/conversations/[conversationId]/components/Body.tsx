@@ -4,7 +4,7 @@ import axios from "axios";
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import useConversation from "@/app/hooks/useConversation";
-import { find } from "lodash";
+import find from "lodash/find";
 import { HiBookmark } from "react-icons/hi2";
 import { useVirtualizer } from "@tanstack/react-virtual";
 

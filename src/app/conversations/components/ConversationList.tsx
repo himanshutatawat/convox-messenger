@@ -6,7 +6,7 @@ import { MdOutlineGroupAdd } from "react-icons/md";
 import { HiMagnifyingGlass, HiXMark } from "react-icons/hi2";
 
 import { User } from "@prisma/client";
-import { find } from "lodash";
+import find from "lodash/find";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 

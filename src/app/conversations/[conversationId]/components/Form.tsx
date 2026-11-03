@@ -18,10 +18,12 @@ import toast from "react-hot-toast";
 import useConversation from "../../../hooks/useConversation";
 import useReplyMessage from "../../../hooks/useReplyMessage";
 import useOptimisticMessages from "../../../hooks/useOptimisticMessages";
+import dynamic from "next/dynamic";
 import { sounds } from "../../../libs/soundEffects";
 import { FullMessageType } from "../../../types";
-import GifPicker from "../../../components/GifPicker";
 import MessageInput from "./MessageInput";
+
+const GifPicker = dynamic(() => import("../../../components/GifPicker"), { ssr: false });
 
 const POPULAR_EMOJIS = [
   "😀", "😂", "😍", "🔥", "👍", "❤️", "🎉", "✨",

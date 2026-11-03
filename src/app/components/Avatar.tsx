@@ -5,6 +5,7 @@ import { User } from "@prisma/client";
 import Image from "next/image";
 
 import useActiveList from "../hooks/useActiveList";
+import { optimizeCloudinaryUrl } from "../libs/cloudinaryUrl";
 
 interface AvatarProps {
   user?: User;
@@ -36,7 +37,8 @@ const Avatar: React.FC<AvatarProps> = ({ user }) => {
         <Image
           className="object-cover"
           fill
-          src={user?.image || "/images/avatar-placeholder.png"}
+          sizes="(max-width: 768px) 36px, 44px"
+          src={optimizeCloudinaryUrl(user?.image, 88)}
           alt="Avatar"
         />
       </div>

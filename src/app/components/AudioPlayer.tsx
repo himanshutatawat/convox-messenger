@@ -84,7 +84,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, isOwn = false }) 
           : "bg-slate-200/70 dark:bg-slate-750 text-slate-900 dark:text-slate-100"
       }`}
     >
-      <audio ref={audioRef} src={src} preload="metadata" />
+      <audio ref={audioRef} src={src} preload="none" />
 
       {/* Play/Pause Button */}
       <button

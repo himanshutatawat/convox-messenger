@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { User } from "@prisma/client";
 import Link from "next/link";
 import { HiCommandLine, HiSpeakerWave, HiSpeakerXMark } from "react-icons/hi2";
@@ -8,10 +9,11 @@ import { HiCommandLine, HiSpeakerWave, HiSpeakerXMark } from "react-icons/hi2";
 import useRoutes from "../../hooks/useRoutes";
 import ThemeToggle from "../theme/ThemeToggle";
 import ConvoXLogo from "../ConvoXLogo";
-import CommandPalette from "../CommandPalette";
 import { sounds } from "../../libs/soundEffects";
 import DesktopItem from "./DesktopItem";
 import ProfileItem from "./ProfileItem";
+
+const CommandPalette = dynamic(() => import("../CommandPalette"), { ssr: false });
 
 interface DesktopSidebarProps {
   currentUser: User;

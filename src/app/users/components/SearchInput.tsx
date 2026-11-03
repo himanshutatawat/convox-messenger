@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
-import { debounce } from "lodash";
+import debounce from "lodash/debounce";
 import { HiMagnifyingGlass, HiXMark } from "react-icons/hi2";
 
 interface SearchInputProps {

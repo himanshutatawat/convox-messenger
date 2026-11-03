@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { useState, useCallback, useMemo, memo } from "react";
+import dynamic from "next/dynamic";
 import { format } from "date-fns";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -21,12 +22,17 @@ import {
 } from "react-icons/hi2";
 
 import Avatar from "../../../components/Avatar";
-import AudioPlayer from "../../../components/AudioPlayer";
 import LinkPreview from "../../../components/LinkPreview";
 import useReplyMessage from "../../../hooks/useReplyMessage";
 import { sounds } from "../../../libs/soundEffects";
 import { FullMessageType, MessageReaction, OGData } from "../../../types";
-import ImageModal from "./ImageModal";
+import { optimizeCloudinaryUrl } from "../../../libs/cloudinaryUrl";
+
+const ImageModal = dynamic(() => import("./ImageModal"), { ssr: false });
+const AudioPlayer = dynamic(
+  () => import("../../../components/AudioPlayer").then((m) => m.AudioPlayer),
+  { ssr: false }
+);
 
 interface MessageBoxProps {
   data: FullMessageType;
@@ -247,10 +253,11 @@ const MessageBox: React.FC<MessageBoxProps> = ({ data, isLast }) => {
                     {data.image && (
                       <Image
                         alt="Uploaded media"
-                        height="288"
-                        width="288"
+                        height={288}
+                        width={288}
+                        sizes="(max-width: 640px) 240px, 288px"
                         onClick={() => setImageModalOpen(true)}
-                        src={data.image}
+                        src={optimizeCloudinaryUrl(data.image, 600)}
                         className="
                           object-cover 
                           cursor-pointer 
@@ -458,9 +465,10 @@ const MessageBox: React.FC<MessageBoxProps> = ({ data, isLast }) => {
                   className="relative w-4 h-4 rounded-full overflow-hidden ring-1 ring-white dark:ring-slate-900"
                 >
                   <Image
-                    src={user.image || "/images/avatar-placeholder.png"}
+                    src={optimizeCloudinaryUrl(user.image, 48)}
                     alt={user.name || "User"}
                     fill
+                    sizes="16px"
                     className="object-cover"
                     unoptimized
                   />
